@@ -494,132 +494,6 @@ void ltblStep5Normal()
 	LTBL_ENABLEIT;
 	if(LTBL_CommEvent) { LTBL_CommEvent(); }
 }
-uint32_t ltblWaitH2(uint32_t timeout, uint32_t verTimeout)
-{
-	int ver = 0;
-	int pas = 0;
-	LTBL_REF_TIM->EGR = 1;
-	while(LTBL_REF_TIM->CNT < verTimeout)
-	{
-		if(ltblGetComp())
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_HIGH;
-			#endif
-			if(ver > LTBL_MAGFILTER_DEC)
-			{
-				ver -= LTBL_MAGFILTER_DEC;
-			}
-			else
-			{
-				ver = 0;
-			}
-		}
-		else
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_LOW;
-			#endif
-			ver += LTBL_MAGFILTER_INC;
-			if(ver >= LTBL_MAGFILTER_VAL)
-			{
-				break;
-			}
-		}
-	}
-	while(LTBL_REF_TIM->CNT < timeout)
-	{
-		if(ltblGetComp())
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_HIGH;
-			#endif
-			pas += LTBL_ZEROFILTER_INC;
-			if(pas >= ltblFilterVal)
-			{
-				break;
-			}
-		}
-		else
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_LOW;
-			#endif
-			if(pas > LTBL_ZEROFILTER_DEC)
-			{
-				pas -= LTBL_ZEROFILTER_DEC;
-			}
-			else
-			{
-				pas = 0;
-			}
-		}
-	}
-	return LTBL_REF_TIM->CNT;
-}
-uint32_t ltblWaitL2(uint32_t timeout, uint32_t verTimeout)
-{
-	int ver = 0;
-	int pas = 0;
-	LTBL_REF_TIM->EGR = 1;
-	while(LTBL_REF_TIM->CNT < verTimeout)
-	{
-		if(!ltblGetComp())
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_LOW;
-			#endif
-			if(ver > LTBL_MAGFILTER_DEC)
-			{
-				ver -= LTBL_MAGFILTER_DEC;
-			}
-			else
-			{
-				ver = 0;
-			}
-		}
-		else
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_HIGH;
-			#endif
-			ver += LTBL_MAGFILTER_INC;
-			if(ver >= LTBL_MAGFILTER_VAL)
-			{
-				break;
-			}
-		}
-	}
-	while(LTBL_REF_TIM->CNT < timeout)
-	{
-		if(!ltblGetComp())
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_LOW;
-			#endif
-			pas += LTBL_ZEROFILTER_INC;
-			if(pas >= ltblFilterVal)
-			{
-				break;
-			}
-		}
-		else
-		{
-			#ifdef LTBL_ENABLE_COMP_OUTPUT
-			LTBL_COMP_OUTPUT_HIGH;
-			#endif
-			if(pas > LTBL_ZEROFILTER_DEC)
-			{
-				pas -= LTBL_ZEROFILTER_DEC;
-			}
-			else
-			{
-				pas = 0;
-			}
-		}
-	}
-	return LTBL_REF_TIM->CNT;
-}
 
 #define LTBL_ASM_OFFSET_REF_TIM_EGR		0x14
 #define LTBL_ASM_OFFSET_REF_TIM_CNT		0x24
@@ -914,7 +788,7 @@ void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume)
 	LTBL_UpdateThrottle(0);
 }
 /**
-  * @brief  正常 6 步方波运行执行此函数前，请保证以正常执行了函数 LTBL_Init()
+  * @brief  使电机以正常 6 步方波运行。执行此函数前，请保证以正常执行了函数 LTBL_Init()
   *         执行此函数前，请保证以正常执行了函数 LTBL_Init()
   * @param  None
   * @retval None
