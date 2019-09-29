@@ -71,11 +71,11 @@ static uint16_t ltblStep= 0;
 /**
   * 参考 定时器地址
   */
-const uint32_t ltblRefCntAddr = (uint32_t)(LTBL_REF_TIM);
+const uint32_t *ltblRefCntAddr = (uint32_t *)(LTBL_REF_TIM);
 /**
   * 当前比较器地址
   */
-const uint32_t ltblCompAddr = (uint32_t)&(COMP->CSR);
+const uint32_t *ltblCompAddr = (uint32_t *)&(COMP->CSR);
 /**
   * 当前比较器输出位掩码
   */
