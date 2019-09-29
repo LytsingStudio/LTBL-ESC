@@ -13,5 +13,20 @@ Features:
 >
 3.Suitable for all kinds of BLDC. Applied to electric skateboard and quadcopter.
 >
-4.Easy to work on your board. All peripherals & pins are defined in config file.
-
+4.PWM mode is configurable, Synchronous rectification supported (High efficient).
+>
+5.Easy to work on your board. All peripherals & pins are defined in config file.
+>
+>
+特点：
+>
+1.支持 PWM / DSHOT600 油门协议，并可自动切换（示例用法在 DEMO 工程内）.
+>
+2.支持高转速电机，最高电转速 750,000 RPM.
+>
+3.适合各种直流无刷电机，既可应用于电动滑板（车）亦可应用于四轴飞行器.
+>
+4.PWM 模式可切换，支持同步整流模式（刹车回收能量，提升 PWM 效率）.
+>
+5.所有引脚 & 外设都已与控制代码解耦，可独立配置，以便运行在你的 PCB 上.
+>
