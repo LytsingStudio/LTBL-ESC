@@ -146,7 +146,6 @@ void Motor_PlaySignalResetMusic()
 	LTBL_Tone(2000, 120, LTBL_TONE_VOLUME_RECOMM);
 	delay(25);
 	LTBL_Tone(4000, 120, LTBL_TONE_VOLUME_RECOMM);
-	delay(500);
 }
 void Motor_PlaySignalDetectMusic()
 {
