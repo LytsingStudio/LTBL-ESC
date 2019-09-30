@@ -2,6 +2,8 @@
 #ifndef __LTBL_DSHOT_H__
 #define __LTBL_DSHOT_H__
 
+/* User Support */
+
 #include "stdint.h"
 
 /* Hardware DSHOT Decode */

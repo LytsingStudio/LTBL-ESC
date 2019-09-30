@@ -37,6 +37,8 @@ void LTBL_PWM_Init()
 	if(LTBL_SIGNAL_PWM_TIM == TIM3)
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 	
+	TIM_DeInit(LTBL_SIGNAL_PWM_TIM);
+	
 	ioConfig.GPIO_Mode = GPIO_Mode_AF;
 	ioConfig.GPIO_OType = GPIO_OType_PP;
 	ioConfig.GPIO_Pin = LTBL_SIGNAL_PWM_PIN;
@@ -99,13 +101,16 @@ static volatile int32_t ltblPWMWidth = 0;
   * 最近一次输入捕获触发时定时器的值
   */
 static volatile uint32_t ltblPWMLastVal = (uint32_t)-1;
-#if( LTBL_SIGNAL_USE_PWM == YES )
 void LTBL_PWM_Handler()
 {
 	static uint8_t captureStatus = 0;
 	uint32_t captureVal = LTBL_SIGNAL_PWM_TIMCCR;
 	TIM_ClearITPendingBit(LTBL_SIGNAL_PWM_TIM, LTBL_SIGNAL_PWM_TIM_IT);
+#if( LTBL_SIGNAL_USE_PWM == YES )
 	if(!ltblPWMInit) { return; }
+#else
+	return;
+#endif
 	if(ltblPWMLastVal == (uint32_t)-1)
 	{
 		ltblPWMLastVal = captureVal;
@@ -202,4 +207,3 @@ void LTBL_PWM_Handler()
 		}
 	}
 }
-#endif

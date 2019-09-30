@@ -141,6 +141,8 @@ void LTBL_DSHOT_Init()
 	if(LTBL_SIGNAL_DSHOT_TIM == TIM3)
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 	
+	TIM_DeInit(LTBL_SIGNAL_DSHOT_TIM);
+	
 	ioConfig.GPIO_Mode = GPIO_Mode_AF;
 	ioConfig.GPIO_OType = GPIO_OType_PP;
 	ioConfig.GPIO_Pin = LTBL_SIGNAL_DSHOT_PIN_RES;
@@ -176,9 +178,9 @@ void LTBL_DSHOT_Init()
 	TIM_ICInit(LTBL_SIGNAL_DSHOT_TIM, &icConfig);
 	
 	TIM_OCStructInit(&ocConfig);
-	ocConfig.TIM_OCMode = TIM_OCMode_PWM2;
+	ocConfig.TIM_OCMode = TIM_OCMode_PWM1;
 	ocConfig.TIM_OCPolarity = TIM_OCPolarity_Low;
-	ocConfig.TIM_Pulse = fmhz * LTBL_SIGNAL_DSHOT_FrameTimeoutNS / 1000;;
+	ocConfig.TIM_Pulse = fmhz * LTBL_SIGNAL_DSHOT_FrameTimeoutNS / 1000;
 	if(LTBL_SIGNAL_DSHOT_TIM_CUT_CH == 1)
 	{
 		TIM_OC1Init(LTBL_SIGNAL_DSHOT_TIM, &ocConfig);

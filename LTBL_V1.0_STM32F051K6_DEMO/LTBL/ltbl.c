@@ -795,8 +795,9 @@ void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume)
   */
 void LTBL_Run()
 {
+	uint32_t i = 0;
 	uint32_t verTimeout = 0;
-	int i = 0;
+	uint32_t commTimeout = LTBL_START_TICK_MAX;
 	for(; i < sizeof(stepTicks) / sizeof(uint32_t); i++)
 	{
 		stepTicks[i] = LTBL_START_TICK_MAX;
@@ -806,7 +807,7 @@ void LTBL_Run()
 						/* filter val will be 500 when comm cycle is 2.5ms */ \
 						ltblFilterVal = (avgStepTicks << 1) + 1;\
 						ltblFilterVal = ltblFilterVal > LTBL_ZEROFILTER_MAX ? LTBL_ZEROFILTER_MAX : ltblFilterVal;\
-						if(lastTicks >= LTBL_STAB_TICK_MAX) { stabilityStep = 0; } else\
+						if(lastTicks >= commTimeout) { stabilityStep = 0; } else\
 						{\
 							if(stabilityStep < LTBL_STAB_STEP_MAX)\
 							{\
@@ -820,27 +821,27 @@ void LTBL_Run()
 	{
 		ltblStep0Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[0] = ltblWaitL(LTBL_START_TICK_MAX, verTimeout);
+		lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout);
 		
 		ltblStep1Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[1] = ltblWaitH(LTBL_START_TICK_MAX, verTimeout);
+		lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout);
 		
 		ltblStep2Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[2] = ltblWaitL(LTBL_START_TICK_MAX, verTimeout);
+		lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout);
 		
 		ltblStep3Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[3] = ltblWaitH(LTBL_START_TICK_MAX, verTimeout);
+		lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout);
 		
 		ltblStep4Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[4] = ltblWaitL(LTBL_START_TICK_MAX, verTimeout);
+		lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout);
 		
 		ltblStep5Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[5] = ltblWaitH(LTBL_START_TICK_MAX, verTimeout);
+		lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout);
 	}
 }
 
