@@ -1,0 +1,6 @@
+
+LTBL Library 更新日志
+
+DateTime		FirmwareVersion		Brief
+2019.09.30-22:30	LTBL V1.0.1		修复了 DSHOT 信号识别失败的 BUG
+2019.10.01-14:23	LTBL V1.0.2		提高了 DSHOT 信号的响应速度（<7us）

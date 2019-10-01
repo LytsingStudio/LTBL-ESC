@@ -3,6 +3,7 @@
 #define __LTBL_DSHOT_H__
 
 /* User Support */
+#include "arduino.h"
 
 #include "stdint.h"
 
@@ -123,10 +124,10 @@
 #define LTBL_SIGNAL_DSHOT_BufferLength		64
 #define LTBL_SIGNAL_DSHOT_ThresholdNS			800
 #define LTBL_SIGNAL_DSHOT_FrameTimeoutNS	2000
-#define LTBL_SIGNAL_DSHOT_TYPE_FUNC		LTBL_SIGNAL_DSHOT_StructType1
+#define LTBL_SIGNAL_DSHOT_TYPE_FUNC		LTBL_SIGNAL_DSHOT_StructType1_ASM
 #endif
 
-#define LTBL_SIGNAL_DSHOT_RESOLUTION			1024
+#define LTBL_SIGNAL_DSHOT_RESOLUTION_P		10
 
 #ifdef __cplusplus
 extern "C"

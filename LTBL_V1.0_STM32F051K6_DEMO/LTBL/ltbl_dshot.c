@@ -21,19 +21,19 @@ static void (*LTBL_DSHOT_Captured)(int32_t throttle, uint8_t *ptrInfo) = 0;
 /**
   * DSHOT 脉冲时长阈值
   */
-static uint32_t ltblDshotThreshold = 0;
+uint32_t ltblDshotThreshold = 0;
 /**
   * DSHOT 脉冲最小时长
   */
-static uint32_t ltblDshotPulseMin = 0;
+uint32_t ltblDshotPulseMin = 0;
 /**
   * DSHOT 脉冲最大时长
   */
-static uint32_t ltblDshotPulseMax = 0;
+uint32_t ltblDshotPulseMax = 0;
 /**
   * DSHOT 脉冲时长缓冲区
   */
-static uint16_t ltblDshotCapturedBuffer[LTBL_SIGNAL_DSHOT_BufferLength];
+uint32_t ltblDshotCapturedBuffer[LTBL_SIGNAL_DSHOT_BufferLength];
 
 /**
   * @brief  获取指定的 DMA 通道
@@ -202,7 +202,7 @@ void LTBL_DSHOT_Init()
 	dmaConfig.DMA_DIR = DMA_DIR_PeripheralSRC;
 	dmaConfig.DMA_M2M = DMA_M2M_Disable;
 	dmaConfig.DMA_MemoryBaseAddr = (uint32_t)ltblDshotCapturedBuffer;
-	dmaConfig.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	dmaConfig.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dmaConfig.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	dmaConfig.DMA_Mode = DMA_Mode_Normal;
 	dmaConfig.DMA_PeripheralBaseAddr = (uint32_t)&LTBL_SIGNAL_DSHOT_TIMCCR;
@@ -262,8 +262,9 @@ void LTBL_DSHOT_AttachCaptureEvent(void(*cap)(int32_t, uint8_t *ptrInfo))
 
 /* DSHOT 数据结构解析器 */
 uint8_t LTBL_SIGNAL_DSHOT_StructType1(void);
+__asm uint8_t LTBL_SIGNAL_DSHOT_StructType1_ASM(void);
 
-static int16_t ltblThrottle = 0;
+int16_t ltblThrottle = 0;
 #if( LTBL_SIGNAL_USE_DSHOT == YES )
 void LTBL_DSHOT_Handler()
 {
@@ -292,6 +293,161 @@ void LTBL_DSHOT_Handler()
 	* @param  None
   * @retval 指示是否符合该解析器的规范，0：解析失败、1：解析成功
   */
+__asm uint8_t LTBL_SIGNAL_DSHOT_StructType1_ASM()
+{
+	extern ltblDshotCapturedBuffer
+	extern ltblDshotThreshold
+	extern ltblDshotPulseMin
+	extern ltblDshotPulseMax
+	extern ltblThrottle
+	
+	push {r4-r7}
+	
+	ldr r0, =ltblDshotCapturedBuffer
+	ldr r1, =ltblDshotPulseMin
+	ldr r1, [r1]
+	
+	ldmia r0!,{r4-r7}
+	
+	cmp r4, r1
+	blt ltblSignalDshotStructType1_asm_end
+	
+	ldr r1, =ltblDshotPulseMax
+	ldr r1, [r1]
+	
+	cmp r4, r1
+	bgt ltblSignalDshotStructType1_asm_end
+	
+	ldr r1, =ltblDshotThreshold
+	ldr r1, [r1]
+	movs r2, #0x00
+	
+ltblSignalDshotStructType1_asm_readByte1
+	cmp r4, r1
+	blt ltblSignalDshotStructType1_asm_readByte2
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte2
+	lsls r2, #0x01
+	cmp r5, r1
+	blt ltblSignalDshotStructType1_asm_readByte3
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte3
+	lsls r2, #0x01
+	cmp r6, r1
+	blt ltblSignalDshotStructType1_asm_readByte4
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte4
+	lsls r2, #0x01
+	cmp r7, r1
+	blt ltblSignalDshotStructType1_asm_readBytePrepare1
+	adds r2, #0x01
+	
+ltblSignalDshotStructType1_asm_readBytePrepare1
+	ldmia r0!,{r4-r7}
+
+ltblSignalDshotStructType1_asm_readByte5
+	lsls r2, #0x01
+	cmp r4, r1
+	blt ltblSignalDshotStructType1_asm_readByte6
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte6
+	lsls r2, #0x01
+	cmp r5, r1
+	blt ltblSignalDshotStructType1_asm_readByte7
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte7
+	lsls r2, #0x01
+	cmp r6, r1
+	blt ltblSignalDshotStructType1_asm_readByte8
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte8
+	lsls r2, #0x01
+	cmp r7, r1
+	blt ltblSignalDshotStructType1_asm_readBytePrepare2
+	adds r2, #0x01
+
+ltblSignalDshotStructType1_asm_readBytePrepare2
+	ldmia r0!,{r4-r7}
+	
+ltblSignalDshotStructType1_asm_readByte9
+	lsls r2, #0x01
+	cmp r4, r1
+	blt ltblSignalDshotStructType1_asm_readByte10
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte10
+	lsls r2, #0x01
+	cmp r5, r1
+	blt ltblSignalDshotStructType1_asm_readByte11
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte11
+	lsls r2, #0x01
+	cmp r6, r1
+	blt ltblSignalDshotStructType1_asm_readByte12
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte12
+	lsls r2, #0x01
+	cmp r7, r1
+	blt ltblSignalDshotStructType1_asm_readBytePrepare3
+	adds r2, #0x01
+
+ltblSignalDshotStructType1_asm_readBytePrepare3
+	ldmia r0!,{r4-r7}
+
+ltblSignalDshotStructType1_asm_readByte13
+	lsls r2, #0x01
+	cmp r4, r1
+	blt ltblSignalDshotStructType1_asm_readByte14
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte14
+	lsls r2, #0x01
+	cmp r5, r1
+	blt ltblSignalDshotStructType1_asm_readByte15
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte15
+	lsls r2, #0x01
+	cmp r6, r1
+	blt ltblSignalDshotStructType1_asm_readByte16
+	adds r2, #0x01
+ltblSignalDshotStructType1_asm_readByte16
+	lsls r2, #0x01
+	cmp r7, r1
+	blt ltblSignalDshotStructType1_asm_readByteVerify
+	adds r2, #0x01
+	
+	ldr r0, =ltblDshotCapturedBuffer
+	movs r7, #0
+	str r7, [r0]
+
+ltblSignalDshotStructType1_asm_readByteVerify
+	movs r7, #0x0f
+	lsrs r4, r2, #12
+	lsrs r5, r2, #8
+	ands r5, r7
+	eors r4, r5
+	lsrs r5, r2, #4
+	ands r5, r7
+	eors r4, r5
+	mov  r5, r2
+	ands r5, r7
+	cmp r4, r5
+	bne ltblSignalDshotStructType1_asm_end
+	ldr r4, =ltblThrottle
+	lsrs r2, #5+(11-LTBL_SIGNAL_DSHOT_RESOLUTION_P)
+	strh r2, [r4]
+	movs r0, #0x01
+	pop {r4-r7}
+	bx lr
+	
+ltblSignalDshotStructType1_asm_end
+	movs r0, #0x00
+	pop {r4-r7}
+	bx lr
+}
+/**
+  * @brief  经典 DSHOT 结构解析（11bit 油门信号 + 1bit 回传请求 + 4bit CRC校验码）
+	* @param  None
+  * @retval 指示是否符合该解析器的规范，0：解析失败、1：解析成功
+  */
 uint8_t LTBL_SIGNAL_DSHOT_StructType1()
 {
 	uint16_t block1 = ((ltblDshotCapturedBuffer[0] > ltblDshotThreshold) << 3) |
@@ -310,26 +466,11 @@ uint8_t LTBL_SIGNAL_DSHOT_StructType1()
 									 ((ltblDshotCapturedBuffer[13] > ltblDshotThreshold) << 2) |
 									 ((ltblDshotCapturedBuffer[14] > ltblDshotThreshold) << 1) |
 									 ((ltblDshotCapturedBuffer[15] > ltblDshotThreshold));
-	ltblDshotCapturedBuffer[1] = 
-	ltblDshotCapturedBuffer[2] = 
-	ltblDshotCapturedBuffer[3] = 
-	ltblDshotCapturedBuffer[4] = 
-	ltblDshotCapturedBuffer[5] = 
-	ltblDshotCapturedBuffer[6] = 
-	ltblDshotCapturedBuffer[7] = 
-	ltblDshotCapturedBuffer[8] = 
-	ltblDshotCapturedBuffer[9] = 
-	ltblDshotCapturedBuffer[10] = 
-	ltblDshotCapturedBuffer[11] = 
-	ltblDshotCapturedBuffer[12] = 
-	ltblDshotCapturedBuffer[13] = 
-	ltblDshotCapturedBuffer[14] = 
-	ltblDshotCapturedBuffer[15] = 0;
 	
 	if(ltblDshotCapturedBuffer[0] >= ltblDshotPulseMin && ltblDshotCapturedBuffer[0] <= ltblDshotPulseMax && (((block1 ^ block2 ^ block3) & 0x0f) == crcVer))
 	{
 		uint32_t rawThrottle = ((block1 << 7) | (block2 << 3) | (block3 >> 1)) & 0x7ff;
-		ltblThrottle = LTBL_SIGNAL_DSHOT_RESOLUTION * rawThrottle / 0x7ff;
+		ltblThrottle = LTBL_SIGNAL_DSHOT_RESOLUTION_P * rawThrottle / 0x7ff;
 		ltblDshotExtendInfo[0] = (uint8_t)(block3 & 1);
 		ltblDshotCapturedBuffer[0] = 0;
 		return 1;
