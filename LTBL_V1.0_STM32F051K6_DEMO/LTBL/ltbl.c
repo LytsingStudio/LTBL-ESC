@@ -720,6 +720,7 @@ void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume)
 	volatile uint32_t diffTick = 0;
 	SystemCoreClockUpdate();
 	fkhz = SystemCoreClock / 1e3;
+	LTBL_DISABLEIT;
 	if(freq > LTBL_TONE_FREQ_MAX && freq < LTBL_TONE_FREQ_MIN)
 	{
 		freq = 1000;
@@ -786,6 +787,7 @@ void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume)
 	LTBL_RESET_HMOS_W;
 	LTBL_RESET_LMOS_V;
 	LTBL_UpdateThrottle(0);
+	LTBL_ENABLEIT;
 }
 /**
   * @brief  使电机以正常 6 步方波运行。执行此函数前，请保证以正常执行了函数 LTBL_Init()

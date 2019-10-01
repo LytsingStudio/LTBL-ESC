@@ -130,8 +130,8 @@ typedef enum
 
 #define LTBL_SYSTEM_MS			System_ms
 
-#define LTBL_DISABLEIT			__asm("cpsid i")
-#define LTBL_ENABLEIT				__asm("cpsie i");//LTBL_TIM->EGR = 1;
+#define LTBL_DISABLEIT			__set_PRIMASK(1)
+#define LTBL_ENABLEIT				__set_PRIMASK(0);//LTBL_TIM->EGR = 1;
 
 #define LTBL_TONE_FREQ_MIN				100
 #define LTBL_TONE_FREQ_MAX				8000
