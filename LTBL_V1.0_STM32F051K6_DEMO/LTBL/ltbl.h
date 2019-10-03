@@ -3,6 +3,7 @@
 #define __LTBL_H__
 
 /* User Support */
+#include "arduino.h"
 #include "delay.h"
 
 /* Periphal Device Driver */
@@ -105,6 +106,7 @@ typedef enum
 #define LTBL_REF_TIM_PRESC	479
 
 #define LTBL_STAB_STEP_MAX	360
+#define LTBL_STAB_STEP			36
 #define LTBL_STAB_TICK_MAX	(LTBL_START_TICK_MAX>>1)
 
 /* macros */
@@ -139,6 +141,7 @@ typedef enum
 #define LTBL_TONE_VOLUME_MAX			50
 #define LTBL_TONE_VOLUME_RECOMM		10
 
+#define LTBL_MAGFILTER_ENABLE			YES
 
 #define LTBL_ZEROFILTER_INC		1
 #define LTBL_ZEROFILTER_DEC		1
@@ -147,6 +150,7 @@ typedef enum
 #define LTBL_MAGFILTER_DEC		1
 #define LTBL_MAGFILTER_VAL		0
 
+#define LTBL_LOW_SPEED_TICK		200
 #define LTBL_START_TICK_MAX		3000
 #define LTBL_MAG_TICK_MAX			3000
 

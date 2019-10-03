@@ -503,7 +503,7 @@ void ltblStep5Normal()
   * @param  verTimeout: 允许等待消磁的最大定时器 Ticks
   * @retval 等待所用的定时器 Ticks
   */
-__asm uint32_t ltblWaitH(uint32_t timeout, uint32_t verTimeout)
+__asm uint32_t ltblWaitH(uint32_t timeout, uint32_t verTimeout, uint32_t verMin)
 {
 	extern ltblRefCntAddr			/* 基准定时器 */
 	extern ltblCompAddr				/* 比较器地址 */
@@ -520,6 +520,7 @@ __asm uint32_t ltblWaitH(uint32_t timeout, uint32_t verTimeout)
 	; r7 = LTBL_COMP
 	
 	push {r4-r7}
+	push {r2}
 	
 	ldr  r2, =ltblCompMask
 	ldr  r2, [r2]
@@ -531,7 +532,7 @@ __asm uint32_t ltblWaitH(uint32_t timeout, uint32_t verTimeout)
 	ldr  r6, [r6]										
 	str  r4, [r6,#LTBL_ASM_OFFSET_REF_TIM_EGR]	; LTBL_REF_TIM(r6)->EGR = 0x01
 	movs r4, #0x00															; r4 : ver = 0
-	movs r5, #0x00															; r5 : pas = 0
+	pop  {r5}
 	
 ltblWaitH_ver_loop
 	ldr  r3, [r6,#LTBL_ASM_OFFSET_REF_TIM_CNT]	; r3 = LTBL_REF_TIM->CNT;
@@ -556,7 +557,11 @@ ltblWaitH_ver_getH
 ltblWaitH_ver_getH_red
 	subs r4, #LTBL_MAGFILTER_DEC
 	b    ltblWaitH_ver_loop
-		
+ltblWaitH_ver_finished
+	ldr  r3, [r6,#LTBL_ASM_OFFSET_REF_TIM_CNT]	; r3 = LTBL_REF_TIM->CNT;
+	cmp  r3, r5																	; if(nowTicks > verMin)
+	bgt  ltblWaitH_pas_begin
+	b    ltblWaitH_ver_finished
 		
 	; r0 = timeout
 	; r1 = verTimeout
@@ -567,7 +572,8 @@ ltblWaitH_ver_getH_red
 	; r6 = LTBL_REF_TIM
 	; r7 = LTBL_COMP
 
-ltblWaitH_ver_finished
+ltblWaitH_pas_begin
+	movs r5, #0x00
 	ldr  r4, =ltblFilterVal
 	ldr  r4, [r4]
 
@@ -601,7 +607,7 @@ ltblWaitH_finished
 	bx   lr
 }
 
-__asm uint32_t ltblWaitL(uint32_t timeout, uint32_t verTimeout)
+__asm uint32_t ltblWaitL(uint32_t timeout, uint32_t verTimeout, uint32_t verMin)
 {
 	extern ltblRefCntAddr			/* 基准定时器 */
 	extern ltblCompAddr				/* 比较器地址 */
@@ -618,6 +624,7 @@ __asm uint32_t ltblWaitL(uint32_t timeout, uint32_t verTimeout)
 	; r7 = LTBL_COMP
 	
 	push {r4-r7}
+	push {r2}
 	
 	ldr  r2, =ltblCompMask
 	ldr  r2, [r2]
@@ -629,7 +636,7 @@ __asm uint32_t ltblWaitL(uint32_t timeout, uint32_t verTimeout)
 	ldr  r6, [r6]										
 	str  r4, [r6,#LTBL_ASM_OFFSET_REF_TIM_EGR]	; LTBL_REF_TIM(r6)->EGR = 0x01
 	movs r4, #0x00															; r4 : ver = 0
-	movs r5, #0x00															; r5 : pas = 0
+	pop  {r5}															; r5 : pas = 0
 	
 ltblWaitL_ver_loop
 	ldr  r3, [r6,#LTBL_ASM_OFFSET_REF_TIM_CNT]	; r3 = LTBL_REF_TIM->CNT;
@@ -654,7 +661,12 @@ ltblWaitL_ver_getH
 ltblWaitL_ver_getH_red
 	subs r4, #LTBL_MAGFILTER_DEC
 	b    ltblWaitL_ver_loop
-		
+ltblWaitL_ver_finished
+	ldr  r3, [r6,#LTBL_ASM_OFFSET_REF_TIM_CNT]	; r3 = LTBL_REF_TIM->CNT;
+	cmp  r3, r5																	; if(nowTicks > verMin)
+	bgt  ltblWaitL_pas_begin
+	b    ltblWaitL_ver_finished
+	
 		
 	; r0 = timeout
 	; r1 = verTimeout
@@ -665,7 +677,8 @@ ltblWaitL_ver_getH_red
 	; r6 = LTBL_REF_TIM
 	; r7 = LTBL_COMP
 
-ltblWaitL_ver_finished
+ltblWaitL_pas_begin
+	movs r5, #0x00
 	ldr  r4, =ltblFilterVal
 	ldr  r4, [r4]
 
@@ -799,6 +812,7 @@ void LTBL_Run()
 {
 	uint32_t i = 0;
 	uint32_t verTimeout = 0;
+	uint32_t verMin = 0;
 	uint32_t commTimeout = LTBL_START_TICK_MAX;
 	for(; i < sizeof(stepTicks) / sizeof(uint32_t); i++)
 	{
@@ -816,34 +830,38 @@ void LTBL_Run()
 								stabilityStep ++;\
 							}\
 						}\
-						verTimeout = avgStepTicks << 1;\
-						verTimeout = verTimeout > LTBL_MAG_TICK_MAX ? LTBL_MAG_TICK_MAX : verTimeout; 
+						if(stabilityStep >= LTBL_STAB_STEP && avgStepTicks >= LTBL_LOW_SPEED_TICK)\
+						{ verMin = 0; }\
+						else { verMin = lastTicks >> 2; }\
+						verTimeout = avgStepTicks * LTBL_MAGFILTER_ENABLE << 1;\
+						verTimeout = verTimeout > LTBL_MAG_TICK_MAX ? LTBL_MAG_TICK_MAX : verTimeout;
+	
 	ltblPinToAF();
 	while(1)
 	{
 		ltblStep0Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout);
+		lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout, verMin);
 		
 		ltblStep1Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout);
+		lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout, verMin);
 		
 		ltblStep2Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout);
+		lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout, verMin);
 		
 		ltblStep3Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout);
+		lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout, verMin);
 		
 		ltblStep4Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout);
+		lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout, verMin);
 		
 		ltblStep5Normal();
 		CalcFilterVal;
-		lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout);
+		lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout, verMin);
 	}
 }
 
