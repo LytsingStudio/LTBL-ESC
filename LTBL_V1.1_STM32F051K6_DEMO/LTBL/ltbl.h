@@ -54,9 +54,12 @@ typedef enum
 	STEP_NULL
 } LTBL_Steps_TypeDef;
 #define PHASE									3
-#define PHASE_U								0
-#define PHASE_V								1
-#define PHASE_W								2
+typedef enum
+{
+	PHASE_U,
+	PHASE_V,
+	PHASE_W
+} LTBL_Phases_TypeDef;
 #define PHASE_FREE						3
 
 /* Output Pins Definition */
