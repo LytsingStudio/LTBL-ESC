@@ -17,6 +17,7 @@ Features:
 >
 5.Easy to work on your board. All peripherals & pins are defined in config file.
 >
+6.Rotate forward and reversely, brake supported.
 >
 特点：
 >
@@ -29,4 +30,6 @@ Features:
 4.PWM 模式可切换，支持同步整流模式（刹车回收能量，提升 PWM 效率）.
 >
 5.所有引脚 & 外设都已与控制代码解耦，可独立配置，以便运行在你的 PCB 上.
+>
+6.电机正转、刹车、倒车功能.
 >

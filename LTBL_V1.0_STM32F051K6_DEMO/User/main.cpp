@@ -115,6 +115,8 @@ void InternalClocks_Init()
 	while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET) ;
 	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
 	while(RCC_GetSYSCLKSource()!=0x08);
+	
+	pinMode(PB6, OUTPUT);
 }
 void Motor_Commucated()
 {
@@ -128,7 +130,7 @@ void Motor_Commucated()
 		}
 	}
 	/* Output comm signal used for debug or speed detecting */
-	togglePin(PB6);
+	// togglePin(PB6);
 }
 void Motor_PlayStartupMusic()
 {
@@ -159,10 +161,10 @@ void Signal_PWM_Captured(int32_t thr)
 	#define LowRPMProtect_StartIntv		200
 	#define LowRPMProtect_EndIntv			3000
 	#define LowRPMProtect_StartThr		1024
-	#define LowRPMProtect_EndThr			100
+	#define LowRPMProtect_EndThr			300
 	
 	lastCapMS = millis();
-	if(thr >= 0)
+	if(thr > 0)
 	{
 		int limit = 1024;
 		int interval = LTBL_GetAvgCommInterval();
@@ -177,16 +179,22 @@ void Signal_PWM_Captured(int32_t thr)
 			LowRPMProtect_StartThr,
 			LowRPMProtect_EndThr
 			);
+			if(thr > limit)
+			{
+				thr = limit;
+			}
 		}
-		if(thr > limit)
-		{
-			thr = limit;
-		}
+		LTBL_SetMode(LTBL_Mode_Normal);
 		LTBL_UpdateThrottle(thr);
+	}
+	else if(thr < 0)
+	{
+		LTBL_SetMode(LTBL_Mode_Brake);
+		LTBL_UpdateThrottle(-thr);
 	}
 	else
 	{
-		LTBL_UpdateThrottle(0);
+		LTBL_SetMode(LTBL_Mode_Free);
 	}
 }
 void Signal_DSHOT_Captured(int32_t thr, uint8_t *info)

@@ -19,20 +19,40 @@ typedef enum
 	LTBL_PWM_MODE_DAMPED
 } LTBL_PWM_Modes;
 
+typedef enum
+{
+	LTBL_Mode_Free,					/* Free MOSFETs and do nothing */
+	LTBL_Mode_Normal,				/* Motor rotate forward */
+	LTBL_Mode_Brake,				/* Motor brake */
+	LTBL_Mode_Reverse,			/* Motor rotate reversely */
+	LTBL_Mode_Startup1,			/* Startup Mode 1 */
+	LTBL_Mode_NULL					/* DON NOT USE */
+} LTBL_Modes_TypeDef;
+
+typedef void (*LTBL_OperationStrategy_TypeDef)();
+typedef void (*LTBL_ThrottleStrategy_TypeDef)(uint16_t);
+
 #define YES	1
 #define NO	0
 
-#define LTBL_Default_PWM_Mode		LTBL_PWM_MODE_DAMPED
+/* Enable parameter check will decrease running efficiency
+ * [!] if you can ensure parameter is ok, set this macro to NO
+ */
+#define LTBL_ParameterCheck_Enable		NO
+#define LTBL_Default_PWM_Mode					LTBL_PWM_MODE_SINGLE
 
 /* step count & phase count */
 #define STEP									6
-#define STEP_0								0
-#define STEP_1								1
-#define STEP_2								2
-#define STEP_3								3
-#define STEP_4								4
-#define STEP_5								5
-#define STEP_NULL							6
+typedef enum
+{
+	STEP_0,
+	STEP_1,
+	STEP_2,
+	STEP_3,
+	STEP_4,
+	STEP_5,
+	STEP_NULL
+} LTBL_Steps_TypeDef;
 #define PHASE									3
 #define PHASE_U								0
 #define PHASE_V								1
@@ -151,7 +171,7 @@ typedef enum
 #define LTBL_MAGFILTER_VAL		0
 
 #define LTBL_LOW_SPEED_TICK		200
-#define LTBL_START_TICK_MAX		3000
+#define LTBL_START_TICK_MAX		2000
 #define LTBL_MAG_TICK_MAX			3000
 
 #ifdef __cplusplus
@@ -161,6 +181,7 @@ extern "C"
 
 void LTBL_Init(void);
 void LTBL_Run(void);
+void LTBL_SetMode(LTBL_Modes_TypeDef mode);
 void LTBL_UpdateThrottle(uint16_t thr);
 void LTBL_AttachCommEvent(void(*commEvent)());
 uint32_t LTBL_GetStabilityStep(void);

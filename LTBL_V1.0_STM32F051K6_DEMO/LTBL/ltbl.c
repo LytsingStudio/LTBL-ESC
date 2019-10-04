@@ -5,6 +5,10 @@
   * 换相后立即激发的事件
   */
 void (*LTBL_CommEvent)() = 0;
+/**
+  * 当前运行模式
+  */
+static LTBL_Modes_TypeDef ltblCurrentMode = LTBL_Mode_Normal;
 
 #define ltblGetComp				LTBL_GetCompStatus
 #define ltblSetComp(ch)		((COMP->CSR = 0x810001 | (ch << 4) | (ch << 20)),(LTBL_ADC->CHSELR = ch))
@@ -96,6 +100,11 @@ static uint32_t ltblPinSource[6];
   */
 static uint16_t ltblStepFloatCCER[STEP_NULL + 1];
 /**
+  * Brake Mode 下的 CCER 寄存器配置
+  * 函数 ltblGetBrakeModeCCER 可以生成该项的值
+  */
+static uint16_t ltblBrakeModeStepCCER[STEP_NULL + 1];
+/**
   * 最近 6 步换相所用的时间间隔，单位 基准定时器 Ticks
   */
 volatile uint32_t stepTicks[STEP];
@@ -111,8 +120,47 @@ volatile uint32_t avgStepTicks = 0;
   * 最近稳定换相次数
   */
 volatile uint32_t stabilityStep = 0;
-
-
+/**
+  * 运行策略集
+  */
+volatile LTBL_OperationStrategy_TypeDef ltblOperationStrategy_step0[LTBL_Mode_NULL];
+volatile LTBL_OperationStrategy_TypeDef ltblOperationStrategy_step1[LTBL_Mode_NULL];
+volatile LTBL_OperationStrategy_TypeDef ltblOperationStrategy_step2[LTBL_Mode_NULL];
+volatile LTBL_OperationStrategy_TypeDef ltblOperationStrategy_step3[LTBL_Mode_NULL];
+volatile LTBL_OperationStrategy_TypeDef ltblOperationStrategy_step4[LTBL_Mode_NULL];
+volatile LTBL_OperationStrategy_TypeDef ltblOperationStrategy_step5[LTBL_Mode_NULL];
+volatile LTBL_ThrottleStrategy_TypeDef ltblUpdateThrottles[LTBL_Mode_NULL];
+/**
+  * 运行策略函数声明
+  */
+void ltblNormalModeStep0(void);
+void ltblNormalModeStep1(void);
+void ltblNormalModeStep2(void);
+void ltblNormalModeStep3(void);
+void ltblNormalModeStep4(void);
+void ltblNormalModeStep5(void);
+void ltblBrakeModeStep0(void);
+void ltblBrakeModeStep1(void);
+void ltblBrakeModeStep2(void);
+void ltblBrakeModeStep3(void);
+void ltblBrakeModeStep4(void);
+void ltblBrakeModeStep5(void);
+void ltblReverseModeStep0(void);
+void ltblReverseModeStep1(void);
+void ltblReverseModeStep2(void);
+void ltblReverseModeStep3(void);
+void ltblReverseModeStep4(void);
+void ltblReverseModeStep5(void);
+void ltblFreeModeStep0(void);
+void ltblFreeModeStep1(void);
+void ltblFreeModeStep2(void);
+void ltblFreeModeStep3(void);
+void ltblFreeModeStep4(void);
+void ltblFreeModeStep5(void);
+void ltblUpdateThrottleNormal(uint16_t thr);
+void ltblUpdateThrottleBrake(uint16_t thr);
+void ltblUpdateThrottleReverse(uint16_t thr);
+void ltblUpdateThrottleFree(uint16_t thr);
 
 /**
   * @brief  使能对应通道的 输出捕获功能
@@ -146,6 +194,47 @@ static void ltblEnablePWM(uint32_t ch, TIM_OCInitTypeDef *config)
 		TIM_OC4PreloadConfig(LTBL_TIM, TIM_OCPreload_Disable);
 		LTBL_TIM->CCR4 = 0;
 	}
+}
+
+/**
+  * @brief  生成 Brake Mode 模式下的 CCER 寄存器的值
+  * @param  None
+  * @retval None
+  */
+static void ltblGetBrakeModeCCER()
+{
+	#define ltblGetStepFloatCCERMast_Stop \
+	(TIM_OutputState_Disable|TIM_OutputNState_Disable|TIM_OCPolarity_Low|TIM_OCNPolarity_Low)
+	
+	#define ltblGetStepFloatCCERMast_Brake \
+	(TIM_OutputState_Disable|TIM_OutputNState_Enable|TIM_OCPolarity_Low|TIM_OCNPolarity_Low)
+	
+	#define ltblGetStepFloatCCERMast_Damped \
+	(TIM_OutputState_Enable|TIM_OutputNState_Enable|TIM_OCPolarity_Low|TIM_OCNPolarity_Low)
+	
+		ltblBrakeModeStepCCER[STEP_0] = (ltblGetStepFloatCCERMast_Brake << ((LTBL_PWM_CH_U - 1) << 2)) | 
+																		(ltblGetStepFloatCCERMast_Damped << ((LTBL_PWM_CH_V - 1) << 2)) |
+																		(ltblGetStepFloatCCERMast_Stop		<< ((LTBL_PWM_CH_W - 1) << 2));
+		
+		ltblBrakeModeStepCCER[STEP_1] = (ltblGetStepFloatCCERMast_Brake << ((LTBL_PWM_CH_U - 1) << 2)) | 
+																		(ltblGetStepFloatCCERMast_Stop 	<< ((LTBL_PWM_CH_V - 1) << 2)) |
+																		(ltblGetStepFloatCCERMast_Damped << ((LTBL_PWM_CH_W - 1) << 2));
+		
+		ltblBrakeModeStepCCER[STEP_2] = (ltblGetStepFloatCCERMast_Stop   << ((LTBL_PWM_CH_U - 1) << 2)) | 
+																		(ltblGetStepFloatCCERMast_Brake << ((LTBL_PWM_CH_V - 1) << 2)) |
+																		(ltblGetStepFloatCCERMast_Damped << ((LTBL_PWM_CH_W - 1) << 2));
+		
+		ltblBrakeModeStepCCER[STEP_3] = (ltblGetStepFloatCCERMast_Damped << ((LTBL_PWM_CH_U - 1) << 2)) | 
+																		(ltblGetStepFloatCCERMast_Brake << ((LTBL_PWM_CH_V - 1) << 2)) |
+																		(ltblGetStepFloatCCERMast_Stop 	<< ((LTBL_PWM_CH_W - 1) << 2));
+		
+		ltblBrakeModeStepCCER[STEP_4] =  (ltblGetStepFloatCCERMast_Damped << ((LTBL_PWM_CH_U - 1) << 2)) | 
+																		 (ltblGetStepFloatCCERMast_Stop 	<< ((LTBL_PWM_CH_V - 1) << 2)) |
+																		 (ltblGetStepFloatCCERMast_Brake << ((LTBL_PWM_CH_W - 1) << 2));
+		
+		ltblBrakeModeStepCCER[STEP_5] = (ltblGetStepFloatCCERMast_Stop   << ((LTBL_PWM_CH_U - 1) << 2)) | 
+																		(ltblGetStepFloatCCERMast_Damped << ((LTBL_PWM_CH_V - 1) << 2)) |
+																		(ltblGetStepFloatCCERMast_Brake << ((LTBL_PWM_CH_W - 1) << 2));
 }
 /**
   * @brief  生成 CCER 寄存器的值
@@ -263,6 +352,43 @@ static void ltblPinToAF()
 	}
 }
 /**
+  * @brief  安装运行策略
+  * @param  None
+  * @retval None
+  */
+static void ltblInstallOperationStrategy()
+{
+	/* normal mode */
+	ltblOperationStrategy_step0[LTBL_Mode_Normal] = ltblNormalModeStep0;
+	ltblOperationStrategy_step1[LTBL_Mode_Normal] = ltblNormalModeStep1;
+	ltblOperationStrategy_step2[LTBL_Mode_Normal] = ltblNormalModeStep2;
+	ltblOperationStrategy_step3[LTBL_Mode_Normal] = ltblNormalModeStep3;
+	ltblOperationStrategy_step4[LTBL_Mode_Normal] = ltblNormalModeStep4;
+	ltblOperationStrategy_step5[LTBL_Mode_Normal] = ltblNormalModeStep5;
+	ltblOperationStrategy_step0[LTBL_Mode_Brake] = ltblBrakeModeStep0;
+	ltblOperationStrategy_step1[LTBL_Mode_Brake] = ltblBrakeModeStep1;
+	ltblOperationStrategy_step2[LTBL_Mode_Brake] = ltblBrakeModeStep2;
+	ltblOperationStrategy_step3[LTBL_Mode_Brake] = ltblBrakeModeStep3;
+	ltblOperationStrategy_step4[LTBL_Mode_Brake] = ltblBrakeModeStep4;
+	ltblOperationStrategy_step5[LTBL_Mode_Brake] = ltblBrakeModeStep5;
+	ltblOperationStrategy_step0[LTBL_Mode_Reverse] = ltblReverseModeStep0;
+	ltblOperationStrategy_step1[LTBL_Mode_Reverse] = ltblReverseModeStep1;
+	ltblOperationStrategy_step2[LTBL_Mode_Reverse] = ltblReverseModeStep2;
+	ltblOperationStrategy_step3[LTBL_Mode_Reverse] = ltblReverseModeStep3;
+	ltblOperationStrategy_step4[LTBL_Mode_Reverse] = ltblReverseModeStep4;
+	ltblOperationStrategy_step5[LTBL_Mode_Reverse] = ltblReverseModeStep5;
+	ltblOperationStrategy_step0[LTBL_Mode_Free] = ltblFreeModeStep0;
+	ltblOperationStrategy_step1[LTBL_Mode_Free] = ltblFreeModeStep1;
+	ltblOperationStrategy_step2[LTBL_Mode_Free] = ltblFreeModeStep2;
+	ltblOperationStrategy_step3[LTBL_Mode_Free] = ltblFreeModeStep3;
+	ltblOperationStrategy_step4[LTBL_Mode_Free] = ltblFreeModeStep4;
+	ltblOperationStrategy_step5[LTBL_Mode_Free] = ltblFreeModeStep5;
+	ltblUpdateThrottles[LTBL_Mode_Normal] = ltblUpdateThrottleNormal;
+	ltblUpdateThrottles[LTBL_Mode_Brake] = ltblUpdateThrottleBrake;
+	ltblUpdateThrottles[LTBL_Mode_Reverse] = ltblUpdateThrottleReverse;
+	ltblUpdateThrottles[LTBL_Mode_Free] = ltblUpdateThrottleFree;
+}
+/**
   * @brief  初始化运行所需的变量，并配置和启动相应外设、配置 IO 输出模式等
   * @param  None
   * @retval None
@@ -377,7 +503,85 @@ void LTBL_Init()
 		RCC->APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN;
 		COMP->CSR |= 0x810001 /*0x813001*/;
 	}
+	ltblGetBrakeModeCCER();
 	ltblGetStepFloatCCER(LTBL_Default_PWM_Mode);
+	ltblInstallOperationStrategy();
+}
+/**
+  * @brief  以 Normal Mode 更新油门值
+  * @param  thr: 指定的油门值
+  * @retval None
+  */
+void ltblUpdateThrottleNormal(uint16_t thr)
+{
+	uint8_t stepTyp = ltblStep >> 1;
+	#if(LTBL_ParameterCheck_Enable == YES)
+	if(thr > LTBL_PWM_RESOLUTION)
+	{
+		thr = LTBL_PWM_RESOLUTION;
+		ltblLastThrottle = thr;
+	}
+	#else
+	ltblLastThrottle = thr;
+	#endif
+	if(stepTyp == 0) { LTBL_PWMCCR_U = thr; }
+	else if(stepTyp == 1) { LTBL_PWMCCR_V = thr; }
+	else if(stepTyp == 2){ LTBL_PWMCCR_W = thr; }
+}
+/**
+  * @brief  以 Brake Mode 更新油门值
+  * @param  thr: 指定的油门值
+  * @retval None
+  */
+void ltblUpdateThrottleBrake(uint16_t thr)
+{
+	#if(LTBL_ParameterCheck_Enable == YES)
+	if(thr > LTBL_PWM_RESOLUTION)
+	{
+		thr = LTBL_PWM_RESOLUTION;
+		ltblLastThrottle = thr;
+	}
+	#else
+	ltblLastThrottle = thr;
+	#endif
+}
+/**
+  * @brief  以 Free Mode 更新油门值
+  * @param  thr: 指定的油门值
+  * @retval None
+  */
+void ltblUpdateThrottleFree(uint16_t thr)
+{
+	#if(LTBL_ParameterCheck_Enable == YES)
+	if(thr > LTBL_PWM_RESOLUTION)
+	{
+		thr = LTBL_PWM_RESOLUTION;
+		ltblLastThrottle = thr;
+	}
+	#else
+	ltblLastThrottle = thr;
+	#endif
+}
+/**
+  * @brief  以 Reverse Mode 更新油门值
+  * @param  thr: 指定的油门值
+  * @retval None
+  */
+void ltblUpdateThrottleReverse(uint16_t thr)
+{
+	uint8_t stepTyp = ltblStep >> 1;
+	#if(LTBL_ParameterCheck_Enable == YES)
+	if(thr > LTBL_PWM_RESOLUTION)
+	{
+		thr = LTBL_PWM_RESOLUTION;
+		ltblLastThrottle = thr;
+	}
+	#else
+	ltblLastThrottle = thr;
+	#endif
+	if(stepTyp == 0) { LTBL_PWMCCR_U = thr; }
+	else if(stepTyp == 1) { LTBL_PWMCCR_V = thr; }
+	else if(stepTyp == 2){ LTBL_PWMCCR_W = thr; }
 }
 /**
   * @brief  更新油门值
@@ -386,15 +590,7 @@ void LTBL_Init()
   */
 void LTBL_UpdateThrottle(uint16_t thr)
 {
-	uint8_t stepTyp = ltblStep >> 1;
-	if(thr > LTBL_PWM_RESOLUTION)
-	{
-		thr = LTBL_PWM_RESOLUTION;
-	}
-	ltblLastThrottle = thr;
-	if(stepTyp == 0) { LTBL_PWMCCR_U = thr; }
-	else if(stepTyp == 1) { LTBL_PWMCCR_V = thr; }
-	else if(stepTyp == 2){ LTBL_PWMCCR_W = thr; }
+	ltblUpdateThrottles[ltblCurrentMode](thr);
 }
 /**
   * @brief  为换相后事件安装指定的事件处理器
@@ -403,7 +599,14 @@ void LTBL_UpdateThrottle(uint16_t thr)
   */
 void LTBL_AttachCommEvent(void(*commEvent)())
 {
+	#if(LTBL_ParameterCheck_Enable == YES)
+	if(commEvent)
+	{
+		LTBL_CommEvent = commEvent;
+	}
+	#else
 	LTBL_CommEvent = commEvent;
+	#endif
 }
 /**
   * @brief  获取稳定换相次数
@@ -424,7 +627,7 @@ uint32_t LTBL_GetAvgCommInterval()
 	return avgStepTicks;
 }
 /**
-  * @brief  函数 ltblStepXNormal 将换相到对应步 X
+  * @brief  函数 ltblStepXNormal 将以 Normal Mode 换相到对应步 X
   * @param  None
   * @retval None
   */
@@ -487,6 +690,148 @@ void ltblStep5Normal()
 {
 	LTBL_DISABLEIT;
 	LTBL_TIM->CCER = ltblStepFloatCCER[STEP_5];
+	LTBL_PWMCCR_W = ltblLastThrottle;
+	LTBL_PWMCCR_V = 0;
+	ltblSetComp(LTBL_COMP_CH_U);
+	ltblStep = STEP_5;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+/**
+  * @brief  函数 ltblStepXFree 将以 Free Mode 换相到对应步 X
+  * @param  None
+  * @retval None
+  */
+void ltblStep0Free()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblStepFloatCCER[STEP_NULL];
+	LTBL_PWMCCR_U = 0;
+	LTBL_PWMCCR_V = 0;
+	ltblSetComp(LTBL_COMP_CH_W);
+	ltblStep = STEP_0;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep1Free()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblStepFloatCCER[STEP_NULL];
+	LTBL_PWMCCR_U = 0;
+	LTBL_PWMCCR_W = 0;
+	ltblSetComp(LTBL_COMP_CH_V);
+	ltblStep = STEP_1;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep2Free()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblStepFloatCCER[STEP_NULL];
+	LTBL_PWMCCR_V = 0;
+	LTBL_PWMCCR_W = 0;
+	ltblSetComp(LTBL_COMP_CH_U);
+	ltblStep = STEP_2;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep3Free()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblStepFloatCCER[STEP_NULL];
+	LTBL_PWMCCR_V = 0;
+	LTBL_PWMCCR_U = 0;
+	ltblSetComp(LTBL_COMP_CH_W);
+	ltblStep = STEP_3;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep4Free()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblStepFloatCCER[STEP_NULL];
+	LTBL_PWMCCR_W = 0;
+	LTBL_PWMCCR_U = 0;
+	ltblSetComp(LTBL_COMP_CH_V);
+	ltblStep = STEP_4;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep5Free()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblStepFloatCCER[STEP_NULL];
+	LTBL_PWMCCR_W = 0;
+	LTBL_PWMCCR_V = 0;
+	ltblSetComp(LTBL_COMP_CH_U);
+	ltblStep = STEP_5;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+/**
+  * @brief  函数 ltblStepXBrake 将以 Brake Mode 换相到对应步 X
+  * @param  None
+  * @retval None
+  */
+void ltblStep0Brake()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblBrakeModeStepCCER[STEP_0];
+	LTBL_PWMCCR_U = ltblLastThrottle;
+	LTBL_PWMCCR_V = 0;
+	ltblSetComp(LTBL_COMP_CH_W);
+	ltblStep = STEP_0;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep1Brake()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblBrakeModeStepCCER[STEP_1];
+	LTBL_PWMCCR_U = ltblLastThrottle;
+	LTBL_PWMCCR_W = 0;
+	ltblSetComp(LTBL_COMP_CH_V);
+	ltblStep = STEP_1;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep2Brake()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblBrakeModeStepCCER[STEP_2];
+	LTBL_PWMCCR_V = ltblLastThrottle;
+	LTBL_PWMCCR_W = 0;
+	ltblSetComp(LTBL_COMP_CH_U);
+	ltblStep = STEP_2;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep3Brake()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblBrakeModeStepCCER[STEP_3];
+	LTBL_PWMCCR_V = ltblLastThrottle;
+	LTBL_PWMCCR_U = 0;
+	ltblSetComp(LTBL_COMP_CH_W);
+	ltblStep = STEP_3;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep4Brake()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblBrakeModeStepCCER[STEP_4];
+	LTBL_PWMCCR_W = ltblLastThrottle;
+	LTBL_PWMCCR_U = 0;
+	ltblSetComp(LTBL_COMP_CH_V);
+	ltblStep = STEP_4;
+	LTBL_ENABLEIT;
+	if(LTBL_CommEvent) { LTBL_CommEvent(); }
+}
+void ltblStep5Brake()
+{
+	LTBL_DISABLEIT;
+	LTBL_TIM->CCER = ltblBrakeModeStepCCER[STEP_5];
 	LTBL_PWMCCR_W = ltblLastThrottle;
 	LTBL_PWMCCR_V = 0;
 	ltblSetComp(LTBL_COMP_CH_U);
@@ -803,6 +1148,194 @@ void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume)
 	LTBL_ENABLEIT;
 }
 /**
+  * @brief  立即切换 LTBL 运行策略（无论当前正处于任何模式下）
+  * @param  mode: 指定的模式，当传入的模式无效时，不会执行任何操作
+  * @retval None
+  */
+void LTBL_SetMode(LTBL_Modes_TypeDef mode)
+{
+	#if(LTBL_ParameterCheck_Enable == YES)
+	if(mode < LTBL_Mode_NULL)
+	{
+		ltblCurrentMode = mode; 
+	}
+	#else
+	ltblCurrentMode = mode;
+	#endif
+}
+
+/* -------------------- Normal Mode -------------------- */
+static uint32_t verTimeout = 0;
+static uint32_t verMin = 0;
+static uint32_t commTimeout = LTBL_START_TICK_MAX;
+#define CalcFilterVal	\
+					avgStepTicks = (stepTicks[0] + stepTicks[1] + stepTicks[2] + stepTicks[3] + stepTicks[4] + stepTicks[5]) / 6;\
+					/* filter val will be 500 when comm cycle is 2.5ms */ \
+					ltblFilterVal = (avgStepTicks << 1) + 1;\
+					ltblFilterVal = ltblFilterVal > LTBL_ZEROFILTER_MAX ? LTBL_ZEROFILTER_MAX : ltblFilterVal;\
+					if(lastTicks >= commTimeout) { stabilityStep = 0; } else\
+					{\
+						if(stabilityStep < LTBL_STAB_STEP_MAX)\
+						{\
+							stabilityStep ++;\
+						}\
+					}\
+					if(stabilityStep >= LTBL_STAB_STEP && avgStepTicks >= LTBL_LOW_SPEED_TICK)\
+					{ verMin = 0; }\
+					else { verMin = lastTicks >> 2; }\
+					verTimeout = avgStepTicks * LTBL_MAGFILTER_ENABLE << 1;\
+					verTimeout = verTimeout > LTBL_MAG_TICK_MAX ? LTBL_MAG_TICK_MAX : verTimeout;
+void ltblNormalModeStep0()
+{
+	ltblStep0Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblNormalModeStep1()
+{
+	ltblStep1Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblNormalModeStep2()
+{
+	ltblStep2Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblNormalModeStep3()
+{
+	ltblStep3Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblNormalModeStep4()
+{
+	ltblStep4Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblNormalModeStep5()
+{
+	ltblStep5Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+
+void ltblBrakeModeStep0()
+{
+	ltblStep0Brake();
+	CalcFilterVal;
+	lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblBrakeModeStep1()
+{
+	ltblStep1Brake();
+	CalcFilterVal;
+	lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblBrakeModeStep2()
+{
+	ltblStep2Brake();
+	CalcFilterVal;
+	lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblBrakeModeStep3()
+{
+	ltblStep3Brake();
+	CalcFilterVal;
+	lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblBrakeModeStep4()
+{
+	ltblStep4Brake();
+	CalcFilterVal;
+	lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblBrakeModeStep5()
+{
+	ltblStep5Brake();
+	CalcFilterVal;
+	lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+
+void ltblReverseModeStep0()
+{
+	ltblStep5Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblReverseModeStep1()
+{
+	ltblStep4Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblReverseModeStep2()
+{
+	ltblStep3Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblReverseModeStep3()
+{
+	ltblStep2Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblReverseModeStep4()
+{
+	ltblStep1Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblReverseModeStep5()
+{
+	ltblStep0Normal();
+	CalcFilterVal;
+	lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+
+
+void ltblFreeModeStep0()
+{
+	ltblStep0Free();
+	CalcFilterVal;
+	lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblFreeModeStep1()
+{
+	ltblStep1Free();
+	CalcFilterVal;
+	lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblFreeModeStep2()
+{
+	ltblStep2Free();
+	CalcFilterVal;
+	lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblFreeModeStep3()
+{
+	ltblStep3Free();
+	CalcFilterVal;
+	lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+void ltblFreeModeStep4()
+{
+	ltblStep4Free();
+	CalcFilterVal;
+	lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout, verMin);
+}
+void ltblFreeModeStep5()
+{
+	ltblStep5Free();
+	CalcFilterVal;
+	lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout, verMin);
+}
+
+
+/**
   * @brief  使电机以正常 6 步方波运行。执行此函数前，请保证以正常执行了函数 LTBL_Init()
   *         执行此函数前，请保证以正常执行了函数 LTBL_Init()
   * @param  None
@@ -811,57 +1344,19 @@ void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume)
 void LTBL_Run()
 {
 	uint32_t i = 0;
-	uint32_t verTimeout = 0;
-	uint32_t verMin = 0;
-	uint32_t commTimeout = LTBL_START_TICK_MAX;
 	for(; i < sizeof(stepTicks) / sizeof(uint32_t); i++)
 	{
 		stepTicks[i] = LTBL_START_TICK_MAX;
 	}
-	#define CalcFilterVal	\
-						avgStepTicks = (stepTicks[0] + stepTicks[1] + stepTicks[2] + stepTicks[3] + stepTicks[4] + stepTicks[5]) / 6;\
-						/* filter val will be 500 when comm cycle is 2.5ms */ \
-						ltblFilterVal = (avgStepTicks << 1) + 1;\
-						ltblFilterVal = ltblFilterVal > LTBL_ZEROFILTER_MAX ? LTBL_ZEROFILTER_MAX : ltblFilterVal;\
-						if(lastTicks >= commTimeout) { stabilityStep = 0; } else\
-						{\
-							if(stabilityStep < LTBL_STAB_STEP_MAX)\
-							{\
-								stabilityStep ++;\
-							}\
-						}\
-						if(stabilityStep >= LTBL_STAB_STEP && avgStepTicks >= LTBL_LOW_SPEED_TICK)\
-						{ verMin = 0; }\
-						else { verMin = lastTicks >> 2; }\
-						verTimeout = avgStepTicks * LTBL_MAGFILTER_ENABLE << 1;\
-						verTimeout = verTimeout > LTBL_MAG_TICK_MAX ? LTBL_MAG_TICK_MAX : verTimeout;
-	
 	ltblPinToAF();
-	while(1)
+	for(;;)
 	{
-		ltblStep0Normal();
-		CalcFilterVal;
-		lastTicks = stepTicks[0] = ltblWaitL(commTimeout, verTimeout, verMin);
-		
-		ltblStep1Normal();
-		CalcFilterVal;
-		lastTicks = stepTicks[1] = ltblWaitH(commTimeout, verTimeout, verMin);
-		
-		ltblStep2Normal();
-		CalcFilterVal;
-		lastTicks = stepTicks[2] = ltblWaitL(commTimeout, verTimeout, verMin);
-		
-		ltblStep3Normal();
-		CalcFilterVal;
-		lastTicks = stepTicks[3] = ltblWaitH(commTimeout, verTimeout, verMin);
-		
-		ltblStep4Normal();
-		CalcFilterVal;
-		lastTicks = stepTicks[4] = ltblWaitL(commTimeout, verTimeout, verMin);
-		
-		ltblStep5Normal();
-		CalcFilterVal;
-		lastTicks = stepTicks[5] = ltblWaitH(commTimeout, verTimeout, verMin);
+		ltblOperationStrategy_step0[ltblCurrentMode]();
+		ltblOperationStrategy_step1[ltblCurrentMode]();
+		ltblOperationStrategy_step2[ltblCurrentMode]();
+		ltblOperationStrategy_step3[ltblCurrentMode]();
+		ltblOperationStrategy_step4[ltblCurrentMode]();
+		ltblOperationStrategy_step5[ltblCurrentMode]();
 	}
 }
 
