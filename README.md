@@ -13,7 +13,7 @@ Features:
 >
 3.Suitable for all kinds of BLDC. Applied to electric skateboard and quadcopter.
 >
-4.PWM mode is configurable, Synchronous rectification supported (High efficient).
+4.PWM mode is configurable, Synchronous rectification supported (High efficiency).
 >
 5.Easy to work on your board. All peripherals & pins are defined in config file.
 >
