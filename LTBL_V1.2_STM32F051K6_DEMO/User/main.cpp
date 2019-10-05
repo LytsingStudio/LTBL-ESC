@@ -212,12 +212,29 @@ void Signal_PWM_Captured(int32_t thr)
 	
 	lastCapMS = millis();
 	int interval = LTBL_GetAvgCommInterval();
+	#if( CONFIG_ThrottleCtrlType == ThrottleCtrlType_Force )
+	{
+		int commThr = Identification_GetCommonThrottle(interval);
+		if(thr >= 0)
+		{
+			commThr = constrain(commThr + thr * CONFIG_ThrottleCtrlType_Force_Forware_MAX / LTBL_PWM_RESOLUTION, 0, LTBL_PWM_RESOLUTION);
+		}
+		else
+		{
+			commThr = constrain(commThr + thr * CONFIG_ThrottleCtrlType_Force_Brake_MAX / LTBL_PWM_RESOLUTION, 0, LTBL_PWM_RESOLUTION);
+		}
+		if(thr || LTBL_GetStabilityStep() >= 6)
+		{
+			thr = commThr;
+		}
+	}
+	#endif
 	if(thr > 0)
 	{
 		int limit = 1024;
 		if(interval > LowRPMProtect_StartIntv)
 		{
-			int nowSpeed = 1e6 / interval;
+			int nowSpeed = 1e6 / (interval+1);
 			int startSpd = 1e6 / LowRPMProtect_StartIntv;
 			int endSpd = 1e6 / LowRPMProtect_EndIntv;
 			limit = map(constrain(nowSpeed, endSpd, startSpd),
@@ -237,6 +254,7 @@ void Signal_PWM_Captured(int32_t thr)
 	}
 	else if(thr < 0)
 	{
+		#if( CONFIG_EnableLinearBrake == YES)
 		if(IsCalibrated)
 		{
 			LTBL_SetMode(LTBL_Mode_Brake);
@@ -247,10 +265,16 @@ void Signal_PWM_Captured(int32_t thr)
 			LTBL_SetMode(LTBL_Mode_Brake);
 			LTBL_UpdateThrottle(-thr);
 		}
+		#else
+		LTBL_UpdateThrottle(-thr);
+		#endif
 	}
 	else
 	{
-		LTBL_SetMode(LTBL_Mode_Free);
+		if(LTBL_Default_PWM_Mode == LTBL_PWM_MODE_SINGLE)
+		{
+			LTBL_SetMode(LTBL_Mode_Free);
+		}
 		LTBL_UpdateThrottle(0);
 	}
 }

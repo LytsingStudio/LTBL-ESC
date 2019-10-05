@@ -116,45 +116,50 @@ void Identification_Init()
 	Config_RegesterData(Identification_SpeedTable1, sizeof(Identification_SpeedTable1));
 	Config_RegesterData(Identification_SpeedTable2, sizeof(Identification_SpeedTable2));
 }
-
+uint16_t Identification_GetCommonThrottle(uint32_t commIntv)
+{
+	int index = 0;
+	uint32_t spd = 1e6 / commIntv;
+	uint32_t dataSpd1 = 0;
+	uint32_t dataSpd2 = 0;
+	uint32_t Thr = 0;
+	for(; index < Identification_TestStepCount; index++)
+	{
+		dataSpd1 = dataSpd2;
+		dataSpd2 = (Identification_SpeedTable1[index] + Identification_SpeedTable2[index]) / 2;
+		if(dataSpd2 >= spd)
+		{
+			break;
+		}
+	}
+	if(index == 0)
+	{
+		uint32_t pct = 10000 * (spd) / (dataSpd2);
+		uint32_t thr2 = LTBL_PWM_RESOLUTION / Identification_TestStepCount;
+		Thr = thr2 * pct / 10000;
+	}
+	else if(index >= Identification_TestStepCount)
+	{
+		Thr = LTBL_PWM_RESOLUTION;
+	}
+	else
+	{
+		uint32_t pct = 10000 * (spd - dataSpd1) / (dataSpd2 - dataSpd1);
+		uint32_t thr1 = LTBL_PWM_RESOLUTION / Identification_TestStepCount + (index - 1) * LTBL_PWM_RESOLUTION / Identification_TestStepCount;
+		uint32_t thr2 = LTBL_PWM_RESOLUTION / Identification_TestStepCount + index * LTBL_PWM_RESOLUTION / Identification_TestStepCount;
+		Thr = (thr1 + (thr2 - thr1) * pct / 10000);
+	}
+	return Thr;
+}
 uint16_t Identification_GetBrakeThrottle(int16_t thr, uint32_t commIntv)
 {
-	uint32_t index = 0;
 	if(Identification_SpeedTable1[Identification_TestStepCount - 1] > 50 &&
 		Identification_SpeedTable1[Identification_TestStepCount - 1] <= 100000 &&
 		Identification_SpeedTable2[Identification_TestStepCount - 1] > 50 &&
 		Identification_SpeedTable2[Identification_TestStepCount - 1] <= 100000
 		)
 	{
-		uint32_t spd = 1e6 / commIntv;
-		uint32_t dataSpd1 = 0;
-		uint32_t dataSpd2 = 0;
-		uint32_t startThr = 0;
-		for(; index < Identification_TestStepCount; index++)
-		{
-			dataSpd1 = dataSpd2;
-			dataSpd2 = (Identification_SpeedTable1[index] + Identification_SpeedTable2[index]) / 2;
-			if(dataSpd2 >= spd)
-			{
-				break;
-			}
-		}
-		
-		if(index == 0)
-		{
-			startThr = LTBL_PWM_RESOLUTION;
-		}
-		else if(index >= Identification_TestStepCount)
-		{
-			startThr = 0;
-		}
-		else
-		{
-			uint32_t pct = 10000 * (spd - dataSpd1) / (dataSpd2 - dataSpd1);
-			uint32_t thr1 = LTBL_PWM_RESOLUTION / Identification_TestStepCount / 2 + (index - 1) * LTBL_PWM_RESOLUTION / Identification_TestStepCount;
-			uint32_t thr2 = LTBL_PWM_RESOLUTION / Identification_TestStepCount / 2 + index * LTBL_PWM_RESOLUTION / Identification_TestStepCount;
-			startThr = LTBL_PWM_RESOLUTION - (thr1 + (thr2 - thr1) * pct / 10000);
-		}
+		uint32_t startThr = LTBL_PWM_RESOLUTION - Identification_GetCommonThrottle(commIntv);
 		startThr = startThr * Identification_BrakeLinearPercent / Identification_BrakeLinearPercent_MAX;
 		uint32_t trueThr = thr * (LTBL_PWM_RESOLUTION - startThr) / LTBL_PWM_RESOLUTION + startThr;
 		return trueThr;
