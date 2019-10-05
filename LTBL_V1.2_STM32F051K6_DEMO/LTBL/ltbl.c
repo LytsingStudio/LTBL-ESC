@@ -1222,8 +1222,15 @@ static uint32_t commTimeout = LTBL_START_TICK_MAX;
 					if(stabilityStep >= LTBL_STAB_STEP && avgStepTicks >= LTBL_LOW_SPEED_TICK)\
 					{ verMin = 0; }\
 					else { verMin = lastTicks >> 2; }\
-					verTimeout = avgStepTicks * LTBL_MAGFILTER_ENABLE << 1;\
-					verTimeout = verTimeout > LTBL_MAG_TICK_MAX ? LTBL_MAG_TICK_MAX : verTimeout;
+					if(avgStepTicks <= LTBL_HIGH_SPEED_TICK)\
+					{\
+						verTimeout = 0;\
+					}\
+					else \
+					{\
+						verTimeout = avgStepTicks * LTBL_MAGFILTER_ENABLE << 1;\
+						verTimeout = verTimeout > LTBL_MAG_TICK_MAX ? LTBL_MAG_TICK_MAX : verTimeout;\
+					}
 void ltblNormalModeStep0()
 {
 	ltblStep0Normal();
