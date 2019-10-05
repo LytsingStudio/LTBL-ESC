@@ -251,11 +251,20 @@ void LTBL_DSHOT_Dispose()
 	NVIC_DisableIRQ(LTBL_SIGNAL_DSHOT_IRQn);
 }
 /**
+  * @brief  获取当前已安装的事件处理器
+	* @param  None
+	* @retval LTBL_SIGNAL_DSHOT_CapturedEventHandler_TypeDef : 当前已安装的事件处理器
+  */
+LTBL_SIGNAL_DSHOT_CapturedEventHandler_TypeDef LTBL_DSHOT_GetCaptureEventHandler()
+{
+	return LTBL_DSHOT_Captured;
+}
+/**
   * @brief  为 DSHOT 协议解码完成事件安装指定的事件处理器
 	* @param  cap : 指定的事件处理器
   * @retval None
   */
-void LTBL_DSHOT_AttachCaptureEvent(void(*cap)(int32_t, uint8_t *ptrInfo))
+void LTBL_DSHOT_AttachCaptureEvent(LTBL_SIGNAL_DSHOT_CapturedEventHandler_TypeDef cap)
 {
 	LTBL_DSHOT_Captured = cap;
 }

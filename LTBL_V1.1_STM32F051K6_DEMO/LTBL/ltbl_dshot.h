@@ -13,6 +13,8 @@
  * 1 Timer
  * 3 Timer I/O Channel
  */
+ 
+typedef void(*LTBL_SIGNAL_DSHOT_CapturedEventHandler_TypeDef)(int32_t, uint8_t *);
 
 #define YES	1
 #define NO	0
@@ -137,8 +139,9 @@ extern "C"
 void LTBL_DSHOT_Init(void);
 void LTBL_DSHOT_Dispose(void);
 void LTBL_DSHOT_Handler(void);
-void LTBL_DSHOT_AttachCaptureEvent(void(*cap)(int32_t, uint8_t *ptrInfo));
-
+void LTBL_DSHOT_AttachCaptureEvent(LTBL_SIGNAL_DSHOT_CapturedEventHandler_TypeDef cap);
+LTBL_SIGNAL_DSHOT_CapturedEventHandler_TypeDef LTBL_DSHOT_GetCaptureEventHandler(void);
+	
 #ifdef __cplusplus
 }
 #endif

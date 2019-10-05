@@ -19,8 +19,8 @@ typedef enum
 
 typedef enum
 {
-	LTBL_SIGNAL_STATE_LOSE,
 	LTBL_SIGNAL_STATE_RESET,
+	LTBL_SIGNAL_STATE_LOSE,
 	LTBL_SIGNAL_STATE_NOTZERO
 } LTBL_SIGNAL_STATES;
 
@@ -36,7 +36,7 @@ extern "C"
 #endif
 	
 LTBL_SIGNAL_TYPES LTBL_Signal_GetSignalType(void);
-LTBL_SIGNAL_STATES LTBL_SIGNAL_GetThrottleState(void);
+uint32_t LTBL_SIGNAL_GetThrottleState(void);
 
 #ifdef __cplusplus
 }

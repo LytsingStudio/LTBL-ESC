@@ -19,6 +19,8 @@ Features:
 >
 6.Rotate forward and reversely, brake supported.
 >
+7.More closed-loop function will be enabled after calibration of motor (For example: LinearBrake).
+>
 特点：
 >
 1.支持 PWM / DSHOT600 油门协议，并可自动切换（示例用法在 DEMO 工程内）.
@@ -32,4 +34,6 @@ Features:
 5.所有引脚 & 外设都已与控制代码解耦，可独立配置，以便运行在你的 PCB 上.
 >
 6.电机正转、刹车、倒车功能.
+>
+7.电机校准后可启用更多闭环功能（如：线性刹车）
 >

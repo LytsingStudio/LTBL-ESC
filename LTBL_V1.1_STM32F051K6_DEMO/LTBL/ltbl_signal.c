@@ -71,7 +71,7 @@ LTBL_SIGNAL_TYPES LTBL_Signal_GetSignalType()
 	return LTBL_SIGNAL_TYPE_Unknown;
 }
 
-LTBL_SIGNAL_STATES LTBL_SIGNAL_GetThrottleState()
+uint32_t LTBL_SIGNAL_GetThrottleState()
 {
 	uint8_t errCode = 0;
 	volatile uint32_t nowMS = LTBL_SIGNAL_SYSTEM_MS;
@@ -102,7 +102,7 @@ LTBL_SIGNAL_STATES LTBL_SIGNAL_GetThrottleState()
 	}
 	else if(errCode == 2)
 	{
-		return LTBL_SIGNAL_STATE_NOTZERO;
+		return ltblSignalCrtThrottle;
 	}
 	else
 	{

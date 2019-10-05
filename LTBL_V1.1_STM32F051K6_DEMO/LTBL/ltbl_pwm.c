@@ -80,11 +80,21 @@ void LTBL_PWM_Dispose()
 	NVIC_DisableIRQ(LTBL_SIGNAL_PWM_IRQn);
 }
 /**
+  * @brief  获取当前已安装的事件处理器
+	* @param  None
+	* @retval LTBL_SIGNAL_PWM_CapturedEventHandler_TypeDef : 当前的事件处理器
+  */
+LTBL_SIGNAL_PWM_CapturedEventHandler_TypeDef LTBL_PWM_GetCaptureEventHandler()
+{
+	return LTBL_PWM_Captured;
+}
+
+/**
   * @brief  为输入捕获后事件安装指定的事件处理器
 	* @param  cap : 指定的事件处理器
   * @retval None
   */
-void LTBL_PWM_AttachCaptureEvent(void(*cap)(int32_t))
+void LTBL_PWM_AttachCaptureEvent(LTBL_SIGNAL_PWM_CapturedEventHandler_TypeDef cap)
 {
 	LTBL_PWM_Captured = cap;
 }

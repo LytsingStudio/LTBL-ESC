@@ -31,6 +31,7 @@ typedef enum
 
 typedef void (*LTBL_OperationStrategy_TypeDef)();
 typedef void (*LTBL_ThrottleStrategy_TypeDef)(uint16_t);
+typedef void(*LTBL_CommEventHandler_TypeDef)(); 
 
 #define YES	1
 #define NO	0
@@ -184,9 +185,12 @@ extern "C"
 
 void LTBL_Init(void);
 void LTBL_Run(void);
+void LTBL_Stop(void);
 void LTBL_SetMode(LTBL_Modes_TypeDef mode);
+void LTBL_SetPWMMode(LTBL_PWM_Modes mode);
 void LTBL_UpdateThrottle(uint16_t thr);
-void LTBL_AttachCommEvent(void(*commEvent)());
+void LTBL_AttachCommEvent(LTBL_CommEventHandler_TypeDef commEvent);
+LTBL_CommEventHandler_TypeDef LTBL_GetCommEventHandler(void);
 uint32_t LTBL_GetStabilityStep(void);
 uint32_t LTBL_GetAvgCommInterval(void);
 void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume);

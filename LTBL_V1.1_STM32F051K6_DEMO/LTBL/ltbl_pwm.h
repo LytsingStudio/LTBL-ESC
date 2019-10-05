@@ -4,6 +4,8 @@
 
 #include "stdint.h"
 
+typedef void(*LTBL_SIGNAL_PWM_CapturedEventHandler_TypeDef)(int32_t);
+
 #define YES	1
 #define NO	0
 
@@ -52,9 +54,9 @@
 #define LTBL_SIGNAL_PWM_TIM_Channel		TIM_Channel_4
 #endif
 
-#define LTBL_SIGNAL_PWM_MIN							1000
-#define LTBL_SIGNAL_PWM_MID							1500
-#define LTBL_SIGNAL_PWM_MAX							2000
+#define LTBL_SIGNAL_PWM_MIN							800
+#define LTBL_SIGNAL_PWM_MID							1200
+#define LTBL_SIGNAL_PWM_MAX							1700
 #define LTBL_SIGNAL_PWM_DEAD_RANGE			50
 #define LTBL_SIGNAL_PWM_VALID_RANGE			500
 
@@ -70,8 +72,9 @@ extern "C"
 
 void LTBL_PWM_Init(void);
 void LTBL_PWM_Dispose(void);
-void LTBL_PWM_AttachCaptureEvent(void(*cap)(int32_t));
+void LTBL_PWM_AttachCaptureEvent(LTBL_SIGNAL_PWM_CapturedEventHandler_TypeDef cap);
 void LTBL_PWM_Handler(void);
+LTBL_SIGNAL_PWM_CapturedEventHandler_TypeDef LTBL_PWM_GetCaptureEventHandler(void);
 
 #ifdef __cplusplus
 }

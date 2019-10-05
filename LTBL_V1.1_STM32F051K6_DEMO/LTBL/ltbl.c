@@ -6,6 +6,10 @@
   */
 void (*LTBL_CommEvent)() = 0;
 /**
+  * LTBL 停止标志
+  */
+uint8_t LTBL_StopFlag = NO;
+/**
   * 当前运行模式
   */
 static LTBL_Modes_TypeDef ltblCurrentMode = LTBL_Mode_Normal;
@@ -593,11 +597,20 @@ void LTBL_UpdateThrottle(uint16_t thr)
 	ltblUpdateThrottles[ltblCurrentMode](thr);
 }
 /**
+  * @brief  获取当前已安装的换相事件处理器
+  * @param  None
+	* @retval LTBL_CommEventHandler_TypeDef : 当前的事件处理器
+  */
+LTBL_CommEventHandler_TypeDef LTBL_GetCommEventHandler()
+{
+	return LTBL_CommEvent;
+}
+/**
   * @brief  为换相后事件安装指定的事件处理器
   * @param  commEvent: 指定的事件处理器
   * @retval None
   */
-void LTBL_AttachCommEvent(void(*commEvent)())
+void LTBL_AttachCommEvent(LTBL_CommEventHandler_TypeDef commEvent)
 {
 	#if(LTBL_ParameterCheck_Enable == YES)
 	if(commEvent)
@@ -1148,6 +1161,23 @@ void LTBL_Tone(uint32_t freq, uint32_t duration, uint32_t volume)
 	LTBL_ENABLEIT;
 }
 /**
+  * @brief  切换 PWM 模式
+  * @param  mode: 指定的 PWM 模式
+  * @retval None
+  */
+void LTBL_SetPWMMode(LTBL_PWM_Modes mode)
+{
+	#if(LTBL_ParameterCheck_Enable == YES)
+	if(mode >= LTBL_PWM_MODE_DAMPED)
+	{
+		ltblCurrentMode = LTBL_PWM_MODE_DAMPED; 
+		ltblGetStepFloatCCER(mode);
+	}
+	#else
+	ltblGetStepFloatCCER(mode);
+	#endif
+}
+/**
   * @brief  立即切换 LTBL 运行策略（无论当前正处于任何模式下）
   * @param  mode: 指定的模式，当传入的模式无效时，不会执行任何操作
   * @retval None
@@ -1162,6 +1192,15 @@ void LTBL_SetMode(LTBL_Modes_TypeDef mode)
 	#else
 	ltblCurrentMode = mode;
 	#endif
+}
+/**
+  * @brief  本次电周期结束后停止工作，释放所有 MOS、复位状态并退出 LTBL_Run() 函数
+	* @param  None
+  * @retval None
+  */
+void LTBL_Stop()
+{
+	LTBL_StopFlag = 1;
 }
 
 /* -------------------- Normal Mode -------------------- */
@@ -1348,15 +1387,30 @@ void LTBL_Run()
 	{
 		stepTicks[i] = LTBL_START_TICK_MAX;
 	}
+	LTBL_StopFlag = 0;
 	ltblPinToAF();
 	for(;;)
 	{
 		ltblOperationStrategy_step0[ltblCurrentMode]();
+		if(LTBL_StopFlag) { break; }
 		ltblOperationStrategy_step1[ltblCurrentMode]();
+		if(LTBL_StopFlag) { break; }
 		ltblOperationStrategy_step2[ltblCurrentMode]();
+		if(LTBL_StopFlag) { break; }
 		ltblOperationStrategy_step3[ltblCurrentMode]();
+		if(LTBL_StopFlag) { break; }
 		ltblOperationStrategy_step4[ltblCurrentMode]();
+		if(LTBL_StopFlag) { break; }
 		ltblOperationStrategy_step5[ltblCurrentMode]();
+		if(LTBL_StopFlag) { break; }
 	}
+	LTBL_UpdateThrottle(0);
+	LTBL_RESET_HMOS_U;
+	LTBL_RESET_HMOS_V;
+	LTBL_RESET_HMOS_W;
+	LTBL_RESET_LMOS_U;
+	LTBL_RESET_LMOS_V;
+	LTBL_RESET_LMOS_W;
+	ltblPinToPP();
 }
 
