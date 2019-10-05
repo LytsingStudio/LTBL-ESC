@@ -9,7 +9,7 @@ Features:
 >
 1.PWM & DSHOT600 throttle protocol supported and recognize automatically.
 >
-2.High electrical RPM. Up to 750,000 RPM.
+2.High electrical RPM. Up to 500,000 RPM.
 >
 3.Suitable for all kinds of BLDC. Applied to electric skateboard and quadcopter.
 >
@@ -25,7 +25,7 @@ Features:
 >
 1.支持 PWM / DSHOT600 油门协议，并可自动切换（示例用法在 DEMO 工程内）.
 >
-2.支持高转速电机，最高电转速 750,000 RPM.
+2.支持高转速电机，最高电转速 500,000 RPM.
 >
 3.适合各种直流无刷电机，既可应用于电动滑板（车）亦可应用于四轴飞行器.
 >
