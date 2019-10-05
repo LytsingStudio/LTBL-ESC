@@ -19,7 +19,7 @@ Features:
 >
 6.Rotate forward and reversely, brake supported.
 >
-7.More closed-loop function will be enabled after calibration of motor (For example: LinearBrake).
+7.More closed-loop function will be enabled after calibration of motor (For example: LinearBrake, Speed closed-loop mode, Force closed-loop mode).
 >
 特点：
 >
@@ -35,5 +35,5 @@ Features:
 >
 6.电机正转、刹车、倒车功能.
 >
-7.电机校准后可启用更多闭环功能（如：线性刹车）
+7.电机校准后可启用更多闭环功能（如：线性刹车、扭矩闭环、速度闭环）
 >
