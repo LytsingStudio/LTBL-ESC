@@ -5,10 +5,11 @@
 #include "stdint.h"
 #include "ltbl.h"
 
-#define CONFIG_SignalLoseBeep		NO
-#define CONFIG_CalibrateHoldMS	3000
-#define CONFIG_FlashStartAddr		(0x08000000+1024*30)
-#define CONFIG_FlashVerifyCode	0xfea2561f
+#define CONFIG_HighSpeedMode				YES
+#define CONFIG_SignalLoseBeep				NO
+#define CONFIG_CalibrateHoldMS			3000
+#define CONFIG_FlashStartAddr				(0x08000000+1024*30)
+#define CONFIG_FlashVerifyCode			0xfea2561f
 
 void Config_RegesterData(void *pData, uint32_t length);
 uint8_t Config_LoadData(void);

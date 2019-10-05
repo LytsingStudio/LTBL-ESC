@@ -166,7 +166,8 @@ void Motor_Commucated()
 			NVIC_SystemReset();
 		}
 	}
-	/* Output comm signal used for debug or speed detecting */
+	/* Handle idle events */
+	#if(CONFIG_HighSpeedMode == NO)
 	togglePin(PB6);
 	if(millis() - lastWorkMS < 10000)
 	{
@@ -176,6 +177,7 @@ void Motor_Commucated()
 	{
 		digitalWrite_LOW(PB5);
 	}
+	#endif
 }
 void Motor_PlayStartupMusic()
 {
