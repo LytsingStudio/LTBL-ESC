@@ -34,6 +34,9 @@
 #define CONFIG_ThrottleCtrlType_Force_Forware_MAX			200
 #define CONFIG_ThrottleCtrlType_Force_Brake_MAX				140
 
+/* parameter for skateboard 2 */
+//#define CONFIG_ThrottleCtrlType_Force_Forware_MAX			200
+//#define CONFIG_ThrottleCtrlType_Force_Brake_MAX				300
 /* config parameter used for my skateboard */
 //#define CONFIG_ThrottleCtrlType_Force_Forware_MAX			200
 //#define CONFIG_ThrottleCtrlType_Force_Brake_MAX				140
@@ -46,6 +49,6 @@ uint8_t Config_LoadData(void);
 void Config_SaveData(void);
 uint16_t Identification_GetBrakeThrottle(int16_t thr, uint32_t commIntv);
 uint16_t Identification_GetCommonThrottle(uint32_t commIntv);
-
+ 
 #endif
 

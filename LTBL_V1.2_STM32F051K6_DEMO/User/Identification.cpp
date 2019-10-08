@@ -166,7 +166,7 @@ uint16_t Identification_GetBrakeThrottle(int16_t thr, uint32_t commIntv)
 	}
 	else
 	{
-		return 0;
+		return thr;
 	}
 }
 

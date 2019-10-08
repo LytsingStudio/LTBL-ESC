@@ -40,7 +40,7 @@ typedef void(*LTBL_CommEventHandler_TypeDef)();
  * [!] if you can ensure parameter is ok, set this macro to NO
  */
 #define LTBL_ParameterCheck_Enable		NO
-#define LTBL_Default_PWM_Mode					LTBL_PWM_MODE_SINGLE
+#define LTBL_Default_PWM_Mode					LTBL_PWM_MODE_DAMPED
 
 /* step count & phase count */
 #define STEP									6
