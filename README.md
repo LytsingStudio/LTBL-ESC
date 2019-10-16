@@ -11,7 +11,7 @@ Features:
 >
 2.High electrical RPM. Up to 500,000 RPM.
 >
-3.Suitable for all kinds of BLDC. Applied to electric skateboard and quadcopter.
+3.Suitable for all kinds of BLDCM. Applied to electric skateboard and quadcopter.
 >
 4.PWM mode is configurable, Synchronous rectification supported (High efficiency).
 >
